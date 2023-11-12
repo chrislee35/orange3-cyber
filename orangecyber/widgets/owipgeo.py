@@ -177,6 +177,13 @@ def block_signals(widget):
     finally:
         widget.blockSignals(False)
 
+class GeoIP2Manager:
+    city = None
+    asn = None
+    
+    def __init__(self, city_mmdb=None, asn_mmdb=None):
+        GeoIP2Manager.city = geoip2.database.Reader(city_mmdb)
+        GeoIP2Manager.asn = geoip2.database.Reader(asn_mmdb)
 
 class OWIPEnrichment(widget.OWWidget, ConcurrentWidgetMixin):
     name = "Enrich IP"
@@ -199,6 +206,8 @@ class OWIPEnrichment(widget.OWWidget, ConcurrentWidgetMixin):
     settingsHandler = DomainContextHandler()
     enrichments: Dict[Variable, Set[str]] = ContextSetting({})
     auto_commit: bool = Setting(True)
+    
+    GeoIP2Manager('/home/chris/Downloads/GeoLite2-City.mmdb', '/home/chris/Downloads/GeoLite2-ASN.mmdb')
 
     def __init__(self):
         super().__init__()
@@ -339,14 +348,6 @@ class OWIPEnrichment(widget.OWWidget, ConcurrentWidgetMixin):
         self.Error.unexpected_error(str(ex))
         
         
-class GeoIP2Manager:
-    city = None
-    asn = None
-    
-    def __init__(self, city_mmdb=None, asn_mmdb=None):
-        GeoIP2Manager.city = geoip2.database.Reader(city_mmdb)
-        GeoIP2Manager.asn = geoip2.database.Reader(asn_mmdb)
-    
 def _run(
     data: Table,
     enrichments: Dict[Variable, Set[str]],
@@ -399,10 +400,13 @@ def _run(
                     val = None
                 else:
                     val = eval(ENRICHMENTS[enrs].function)
+                    if val == None and enrs in ['Latitude', 'Longitude']:
+                        val = 0.0
                 row.append(val)
                 count_actions += 1
             values.append(row)
-            progress(count_actions / total_actions)
+            if total_actions > 0:
+                progress(count_actions / total_actions)
     
     enrichment_domain = Domain(
         data.domain.attributes,
@@ -422,7 +426,6 @@ def _run(
         
 def main(argv=sys.argv):
     
-    GeoIP2Manager('/home/chris/Downloads/GeoLite2-City.mmdb', '/home/chris/Downloads/GeoLite2-ASN.mmdb')
     from orangewidget.utils.widgetpreview import WidgetPreview
     data = [ [x] for x in "1.1.1.1,2.2.2.2,3.3.3.3,4.4.4.4,jerry".split(",") ]
     varibles = [ StringVariable("IP Address") ]
