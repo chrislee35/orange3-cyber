@@ -186,10 +186,9 @@ class GeoIP2Manager:
         GeoIP2Manager.asn = geoip2.database.Reader(asn_mmdb)
 
 class OWIPEnrichment(widget.OWWidget, ConcurrentWidgetMixin):
-    name = "Enrich IP"
+    name = "Geolocate IP"
     description = "Adds lat/long/city/state/country/ASN/netblock features for IP addresses"
     icon = "icons/ipgeo.svg"
-    category = "Cyber"
     keywords = "geo, cyber"
     priority = 9910
 
@@ -400,8 +399,8 @@ def _run(
                     val = None
                 else:
                     val = eval(ENRICHMENTS[enrs].function)
-                    if val == None and enrs in ['Latitude', 'Longitude']:
-                        val = 0.0
+                if val == None and enrs in ['Latitude', 'Longitude']:
+                    val = 0.0
                 row.append(val)
                 count_actions += 1
             values.append(row)
